@@ -1,13 +1,13 @@
 <template>
-  <article class="relative flex gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-colors">
-    <!-- Full-card overlay link → internal story page -->
-    <NuxtLink :to="`/story/${story.id}`" class="absolute inset-0 rounded-xl z-0" :aria-label="story.title" />
+  <article class="relative isolate flex gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-colors">
+    <!-- Full-card overlay link → internal story page (z-[1] so it's above normal flow) -->
+    <NuxtLink :to="`/story/${story.id}`" class="absolute inset-0 rounded-xl z-[1]" :aria-label="story.title" />
 
-    <!-- Preview image: z-10 so it's above overlay; links to original article if URL exists -->
+    <!-- Preview image: z-[2] so it's above overlay; links to original article if URL exists -->
     <component
       :is="story.url ? 'a' : 'div'"
       v-bind="story.url ? { href: story.url, target: '_blank', rel: 'noopener noreferrer' } : {}"
-      class="relative z-10 shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 flex items-center justify-center"
+      class="relative z-[2] shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 flex items-center justify-center"
     >
       <img
         v-if="previewImage"
@@ -22,14 +22,14 @@
       </div>
     </component>
 
-    <!-- Content: z-10 so inner links work above overlay -->
-    <div class="relative z-10 flex-1 min-w-0 flex flex-col justify-between">
+    <!-- Content: no z-index → sits below overlay, so clicks on spans navigate to story page -->
+    <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
         <a
           :href="story.url || hnLink"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-stone-900 dark:text-stone-100 font-medium leading-snug hover:text-[#ff6600] transition-colors line-clamp-2"
+          class="relative z-[2] text-stone-900 dark:text-stone-100 font-medium leading-snug hover:text-[#ff6600] transition-colors line-clamp-2"
         >
           {{ story.title }}
         </a>
