@@ -38,15 +38,13 @@
         </span>
         <span>{{ story.by }}</span>
         <span>{{ timeAgo }}</span>
-        <a
-          :href="hnLink"
-          target="_blank"
-          rel="noopener noreferrer"
+        <NuxtLink
+          :to="`/story/${story.id}`"
           class="flex items-center gap-1 hover:text-[#ff6600] transition-colors ml-auto"
         >
           <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 2.5h13a1 1 0 011 1v9a1 1 0 01-1 1h-13a1 1 0 01-1-1v-9a1 1 0 011-1zm.5 2v7h12v-7h-12zm2 1h8v1h-8zm0 2h6v1h-6z"/></svg>
           {{ story.descendants ?? 0 }}
-        </a>
+        </NuxtLink>
       </div>
     </div>
   </article>
