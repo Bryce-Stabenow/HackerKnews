@@ -84,7 +84,7 @@
             <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
               <path d="M1.5 2.5h13a1 1 0 011 1v9a1 1 0 01-1 1h-13a1 1 0 01-1-1v-9a1 1 0 011-1zm.5 2v7h12v-7h-12zm2 1h8v1h-8zm0 2h6v1h-6z"/>
             </svg>
-            {{ story.totalComments }} comments
+            {{ commentCount }} comments
           </span>
           <a
             :href="`https://news.ycombinator.com/item?id=${story.id}`"
@@ -108,12 +108,12 @@
       <!-- Comments section -->
       <div class="mt-6">
         <h2 class="text-sm font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-4">
-          Comments ({{ story.totalComments }})
+          Comments ({{ commentCount }})
         </h2>
 
-        <div v-if="loadedComments.length" class="space-y-5">
+        <div v-if="topComments.length" class="space-y-5">
           <div
-            v-for="comment in loadedComments"
+            v-for="comment in topComments"
             :key="comment.id"
             class="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4 sm:p-5"
           >
@@ -124,78 +124,39 @@
         <div v-else class="text-center py-12 text-stone-400 dark:text-stone-500 text-sm">
           No comments yet.
         </div>
-
-        <!-- Load more button -->
-        <div v-if="hasMore" class="mt-5 text-center">
-          <button
-            @click="loadMore"
-            :disabled="loadingMore"
-            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-stone-200 dark:border-stone-700 text-sm text-stone-600 dark:text-stone-300 hover:border-stone-300 dark:hover:border-stone-600 hover:text-stone-900 dark:hover:text-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg v-if="loadingMore" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-            </svg>
-            {{ loadingMore ? 'Loading…' : `Load more comments (${story.totalTopLevel - loadedComments.length} remaining)` }}
-          </button>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { AlgoliaStory, AlgoliaComment } from '~/types/hackerNews'
+import type { AlgoliaStory } from '~/types/hackerNews'
 import { formatTimeAgo, extractDomain } from '~/utils/formatTime'
-
-type StoryResponse = AlgoliaStory & {
-  totalTopLevel: number
-  totalComments: number
-}
-
-const PAGE_SIZE = 10
 
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
 
-const { data: story, pending, error } = await useAsyncData<StoryResponse>(
+const { data: story, pending, error } = await useAsyncData<AlgoliaStory>(
   `story-${id}`,
-  () => $fetch(`/api/story/${id}`, { query: { offset: 0, limit: PAGE_SIZE } }),
+  () => $fetch(`/api/story/${id}`),
 )
 
 const domain = computed(() => extractDomain(story.value?.url ?? undefined))
 const timeAgo = computed(() => story.value?.created_at_i ? formatTimeAgo(story.value.created_at_i) : '')
 
-// Accumulates comments as pages are loaded
-const loadedComments = ref<AlgoliaComment[]>([])
-
-watch(
-  () => story.value?.children,
-  (serverComments) => {
-    if (serverComments) loadedComments.value = [...serverComments]
-  },
-  { immediate: true },
-)
-
-const hasMore = computed(() =>
-  !!story.value && loadedComments.value.length < story.value.totalTopLevel
-)
-
-const loadingMore = ref(false)
-
-async function loadMore() {
-  if (loadingMore.value || !hasMore.value) return
-  loadingMore.value = true
-  try {
-    const data = await $fetch<StoryResponse>(`/api/story/${id}`, {
-      query: { offset: loadedComments.value.length, limit: PAGE_SIZE },
-    })
-    loadedComments.value.push(...(data.children ?? []))
-  } finally {
-    loadingMore.value = false
-  }
+// Count all comments recursively
+function countComments(children: AlgoliaStory['children']): number {
+  if (!children?.length) return 0
+  return children.reduce((sum, c) => sum + 1 + countComments(c.children), 0)
 }
+
+const commentCount = computed(() => countComments(story.value?.children ?? []))
+
+// Only top-level non-deleted comments
+const topComments = computed(() =>
+  (story.value?.children ?? []).filter(c => c.author || c.text)
+)
 
 // Preview image — reuses server in-process cache + browser HTTP cache (max-age=3600)
 // so if the user came from an index page the image is already cached
