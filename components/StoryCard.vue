@@ -1,7 +1,14 @@
 <template>
-  <article class="flex gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-colors">
-    <!-- Preview image -->
-    <div class="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
+  <article class="relative isolate flex gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-colors">
+    <!-- Full-card overlay link → internal story page (z-[1] so it's above normal flow) -->
+    <NuxtLink :to="`/story/${story.id}`" class="absolute inset-0 rounded-xl z-[1]" :aria-label="story.title" />
+
+    <!-- Preview image: z-[2] so it's above overlay; links to original article if URL exists -->
+    <component
+      :is="story.url ? 'a' : 'div'"
+      v-bind="story.url ? { href: story.url, target: '_blank', rel: 'noopener noreferrer' } : {}"
+      class="relative z-[2] shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 flex items-center justify-center"
+    >
       <img
         v-if="previewImage"
         :src="previewImage"
@@ -13,16 +20,16 @@
       <div v-else class="w-full h-full flex items-center justify-center" :style="{ backgroundColor: fallbackColor }">
         <span class="text-white font-bold text-lg uppercase">{{ fallbackLetter }}</span>
       </div>
-    </div>
+    </component>
 
-    <!-- Content -->
+    <!-- Content: no z-index → sits below overlay, so clicks on spans navigate to story page -->
     <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
         <a
           :href="story.url || hnLink"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-stone-900 dark:text-stone-100 font-medium leading-snug hover:text-[#ff6600] transition-colors line-clamp-2"
+          class="relative z-[2] text-stone-900 dark:text-stone-100 font-medium leading-snug hover:text-[#ff6600] transition-colors line-clamp-2"
         >
           {{ story.title }}
         </a>
@@ -38,15 +45,10 @@
         </span>
         <span>{{ story.by }}</span>
         <span>{{ timeAgo }}</span>
-        <a
-          :href="hnLink"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex items-center gap-1 hover:text-[#ff6600] transition-colors ml-auto"
-        >
+        <span class="flex items-center gap-1 ml-auto">
           <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 2.5h13a1 1 0 011 1v9a1 1 0 01-1 1h-13a1 1 0 01-1-1v-9a1 1 0 011-1zm.5 2v7h12v-7h-12zm2 1h8v1h-8zm0 2h6v1h-6z"/></svg>
           {{ story.descendants ?? 0 }}
-        </a>
+        </span>
       </div>
     </div>
   </article>
