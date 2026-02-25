@@ -30,7 +30,24 @@
     <!-- Story content -->
     <div v-else-if="story">
       <!-- Story header card -->
-      <div class="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-5 sm:p-6">
+      <div class="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden">
+        <!-- Preview image banner -->
+        <a
+          v-if="previewImage && story.url"
+          :href="story.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block"
+        >
+          <img
+            :src="previewImage"
+            :alt="story.title"
+            class="w-full h-44 sm:h-56 object-cover"
+            @error="previewImage = null"
+          />
+        </a>
+
+        <div class="p-5 sm:p-6">
         <!-- Title -->
         <h1 class="text-lg sm:text-xl font-semibold text-stone-900 dark:text-stone-100 leading-snug">
           <a
@@ -85,6 +102,7 @@
           class="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800 text-sm text-stone-700 dark:text-stone-300 leading-relaxed hn-comment-text"
           v-html="story.text"
         />
+        </div><!-- /inner padding -->
       </div>
 
       <!-- Comments section -->
@@ -139,6 +157,22 @@ const commentCount = computed(() => countComments(story.value?.children ?? []))
 const topComments = computed(() =>
   (story.value?.children ?? []).filter(c => c.author || c.text)
 )
+
+// Preview image — reuses server in-process cache + browser HTTP cache (max-age=3600)
+// so if the user came from an index page the image is already cached
+const previewImage = ref<string | null>(null)
+
+onMounted(async () => {
+  if (!story.value?.url) return
+  try {
+    const data = await $fetch<{ image: string | null }>('/api/preview', {
+      query: { url: story.value.url },
+    })
+    if (data?.image) previewImage.value = data.image
+  } catch {
+    // silent fail — page works fine without image
+  }
+})
 
 function goBack() {
   if (window.history.length > 1) {
