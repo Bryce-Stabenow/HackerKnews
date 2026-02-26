@@ -6,7 +6,7 @@ on:
 
 env:
   RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  ENVIRONMENT_NAME: pr-${{ github.event.number }}
+  ENVIRONMENT_NAME: staging
 
 jobs:
   deploy:
