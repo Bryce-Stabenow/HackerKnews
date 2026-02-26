@@ -1,0 +1,120 @@
+name: Railway Staging
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  ENVIRONMENT_NAME: staging
+
+jobs:
+  deploy:
+    name: Deploy staging environment
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Create environment (if it doesn't exist)
+        run: railway environment create "$ENVIRONMENT_NAME" || true
+
+      - name: Deploy to staging environment
+        run: railway up --environment "$ENVIRONMENT_NAME" --detach
+
+      - name: Get deployment URL
+        id: url
+        run: |
+          URL=$(railway domain --environment "$ENVIRONMENT_NAME" 2>/dev/null || echo "")
+          echo "deployment_url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Comment deployment URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.url.outputs.deployment_url }}';
+            const envName = process.env.ENVIRONMENT_NAME;
+            const body = url
+              ? `### Railway Staging Environment\n\n| | |\n|---|---|\n| **Environment** | \`${envName}\` |\n| **URL** | ${url} |\n| **Commit** | ${{ github.sha }} |`
+              : `### Railway Staging Environment\n\n**Environment \`${envName}\` deployed successfully.**\n\nCommit: ${{ github.sha }}\n\n_No public domain configured — add one in the Railway dashboard or set a custom domain._`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('Railway Staging Environment')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  teardown:
+    name: Tear down staging environment
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Delete staging environment
+        run: railway environment delete "$ENVIRONMENT_NAME" -y || true
+
+      - name: Comment teardown on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const envName = process.env.ENVIRONMENT_NAME;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('Railway Staging Environment')
+            );
+
+            const body = `### Railway Staging Environment\n\n**Environment \`${envName}\` has been torn down** after PR close.`;
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
