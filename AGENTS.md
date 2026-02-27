@@ -4,11 +4,11 @@
 
 ### Overview
 
-HackerKnews is a Nuxt 3 (Vue 3) PWA client for Hacker News. It is a single-service app — one command (`npm run dev`) starts both the Vue frontend and the Nitro API server on port 3000.
+HackerKnews is a Nuxt 3 (Vue 3) PWA client for Hacker News. It is a single-service app — one command (`npm run dev`) starts both the Vue frontend and the Nitro API server on port 7654.
 
 ### Key facts
 
-- **No database, no secrets, no Docker** — all data comes from the public HackerNews Firebase API.
+- **No database, no secrets** — all data comes from the public HackerNews Firebase API.
 - **No test framework configured** — there are no automated tests in this repo.
 - **No linter configured** — there is no ESLint/Prettier setup. Use `npm run build` as the primary correctness check (TypeScript + Vite build).
 - The `postinstall` script (`nuxt prepare`) auto-generates the `.nuxt` directory with TypeScript types after `npm install`.
@@ -20,7 +20,7 @@ See `package.json` scripts. Key ones:
 | Task | Command |
 |---|---|
 | Install deps | `npm install` |
-| Dev server | `npm run dev` (port 3000) |
+| Dev server | `npm run dev` (port 7654) |
 | Production build | `npm run build` |
 | Preview prod build | `npm run preview` |
 
