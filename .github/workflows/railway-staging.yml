@@ -72,24 +72,20 @@ jobs:
             }
 
   teardown:
-    name: Tear down staging environment
+    name: Update PR status on close
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
 
     steps:
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Delete staging environment
-        run: railway environment delete "$ENVIRONMENT_NAME" -y || true
-
-      - name: Comment teardown on PR
+      - name: Comment PR closed on deployment
         uses: actions/github-script@v7
         with:
           script: |
             const envName = process.env.ENVIRONMENT_NAME;
+            const merged = context.payload.pull_request.merged;
+            const status = merged ? 'merged' : 'closed';
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -101,7 +97,7 @@ jobs:
               c.body.includes('Railway Staging Environment')
             );
 
-            const body = `### Railway Staging Environment\n\n**Environment \`${envName}\` has been torn down** after PR close.`;
+            const body = `### Railway Staging Environment\n\n**PR ${status}.** The \`${envName}\` environment remains available and will be updated by the next PR deployment.`;
 
             if (existing) {
               await github.rest.issues.updateComment({
