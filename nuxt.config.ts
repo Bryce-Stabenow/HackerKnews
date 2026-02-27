@@ -87,5 +87,9 @@ export default defineNuxtConfig({
     cssPath: '~/assets/css/tailwind.css',
   },
 
+  devServer: {
+    port: 7654,
+  },
+
   devtools: { enabled: false },
 })
